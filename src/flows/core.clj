@@ -62,16 +62,19 @@
   #_(background 255)
   (background 31 31 20)
   
-  (draw-flows state)
-  #_(hpgl/do-record
-   (width)
-   (height)
-   "generated/out.hpgl"
-   (fn []
-     (println "Recording to hpgl...")
-     (draw-flows state)
-     (println "Done.")
-     (no-loop))))
+  #_(draw-flows state)
+  (do
+    (let [out "generated/out.hpgl"]
+      (hpgl/do-record
+       (width)
+       (height)
+       out
+       (fn []
+         (println "Recording to hpgl...")
+         (draw-flows state)
+         (println "Done.")
+         (no-loop)))
+      (hpgl/plot out))))
 
 (defsketch flows
   :title "Flows"

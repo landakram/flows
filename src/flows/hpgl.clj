@@ -2,6 +2,7 @@
   (:import [hpglgraphics HPGLGraphics])
   (:require [clojure.java.shell :refer [sh]]
             [clojure.pprint :refer [pprint]]
+            [clojure.string :as string]
             [quil.applet :as ap]
             [quil.core :as q]
             [quil.util :as u]))
@@ -9,7 +10,7 @@
 (def doc-width 11040)
 (def doc-height 7721)
 (def plotter-conf {:bin "/Users/mark/Documents/code/plot/plot.py"
-                   :padding 1500})
+                   :padding "1500"})
 
 (defn create-hpgl-graphics [w h path]
   (.createGraphics (ap/current-applet) (int w) (int h)
@@ -30,13 +31,17 @@
                  (q/scale scale-val scale-val)
                  (f))))
 
+(defn strip-init-instruction [hpgl-cmds]
+  (string/replace hpgl-cmds "IN;" ""))
 
 (defn plot [outfile]
   (let [outfile (u/absolute-path outfile)
         {:keys [bin padding]} plotter-conf]
+    (spit outfile (strip-init-instruction (slurp outfile)))
     (println "Plotting...")
-    (let [result (sh bin :env (merge {"HPGL_FILE" outfile "PADDING" padding}
-                                     (System/getenv)))]
+    (let [result (sh bin :env (merge {}
+                                     (System/getenv)
+                                     {"HPGL_FILE" outfile "PADDING" padding}))]
       (when (contains? result :err)
         (println "== ERROR ==")
         (println (:err result)))
