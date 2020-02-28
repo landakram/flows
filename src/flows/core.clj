@@ -1,23 +1,10 @@
 (ns flows.core
   (:require [quil.core :refer :all]
+            [flows.grid :refer :all]
             [flows.hpgl :as hpgl]
-            [quil.helpers.seqs :refer [range-incl]]
             [quil.helpers.calc :refer [mul-add]]
             [clojure.pprint :refer [pprint]]
             [quil.middleware :as m]))
-
-(defn grid-points [{:keys [origin width height tile-width tile-height]}]
-  (let [[origin-x origin-y] origin]
-    (for [y (range-incl origin-x (+ origin-x height) tile-height)
-          x (range-incl origin-y (+ origin-y width) tile-width)]
-        [x y])))
-
-(defn make-grid [tile-width tile-height width height origin]
-  {:origin origin
-   :width width
-   :height height
-   :tile-width tile-width
-   :tile-height tile-height})
 
 (defn initial-state []
   (let [width (width)
