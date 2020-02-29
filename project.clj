@@ -6,4 +6,4 @@
   :plugins [[lein-localrepo "0.5.4"]]
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [quil "3.1.0"]
-                 [hpglgraphics "1.1"]])
+                 [plotter-utils "0.1.1"]])

@@ -1,7 +1,7 @@
 (ns flows.core
   (:require [quil.core :refer :all]
-            [flows.grid :refer :all]
-            [flows.hpgl :as hpgl]
+            [plotter-utils.grid :refer :all]
+            [plotter-utils.quil :as pl]
             [quil.helpers.calc :refer [mul-add]]
             [clojure.pprint :refer [pprint]]
             [quil.middleware :as m]))
@@ -12,7 +12,7 @@
         tile-width 20
         tile-height 20
         origin [0 0]
-        grid (make-grid tile-width tile-height width height origin)]
+        grid (make-grid origin width height tile-width tile-height)]
     {:grid grid
      :x-start (random 10)
      :y-start (random 10)}))
@@ -65,7 +65,7 @@
   #_(draw-flows state)
   (do
     (let [out "generated/out.hpgl"]
-      (hpgl/do-record
+      (pl/do-record
        (width)
        (height)
        out
@@ -73,8 +73,7 @@
          (println "Recording to hpgl...")
          (draw-flows state)
          (println "Done.")
-         (no-loop)))
-      (hpgl/plot out))))
+         (no-loop))))))
 
 (defsketch flows
   :title "Flows"
