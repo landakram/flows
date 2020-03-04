@@ -7,28 +7,68 @@
             [clojure.pprint :refer [pprint]]
             [quil.middleware :as m]))
 
-(defn make-grid [origin width height tile-width tile-height]
+(defn transform-fn [x-start y-start]
+  (fn [[x y] val]
+    (let [x-noise (mul-add x 0.030 x-start)
+          y-noise (mul-add y 0.030 y-start)
+          z-noise (* (frame-count) 0.030)]
+      (assoc val :noise (noise x-noise y-noise z-noise)))))
+
+(defn make-grid [origin width height tile-width tile-height x-start y-start]
   (let [columns (/ width tile-width)
-        rows (/ height tile-height)]
+        rows (/ height tile-height)
+        transform (transform-fn x-start y-start)]
     {:g (grid/create-grid columns rows
-                     (fn [[x y]]
-                       {:noise (noise x y 0)}))
+                          (fn [[x y]]
+                            (transform [x y] {})))
      :width width
      :height height
      :tile-width tile-width
      :tile-height tile-height
      :origin origin}))
 
+(defn make-curve [origin step-length steps]
+  {:origin origin
+   :step-length step-length
+   :steps steps})
+
+(defn enumerate-segments [{:keys [origin step-length steps]} {:keys [g tile-width tile-height]}]
+  (let [[x y] origin]
+    (loop [last-x x
+           last-y y
+           segments []]
+      (let [col (int (/ last-x tile-width))
+            row (int (/ last-y tile-height))
+            cell (get g [col row])
+            angle (if (nil? cell)
+                    -1
+                    (* (:noise cell) TWO-PI))
+            x-step (* step-length (cos angle))
+            y-step (* step-length (sin angle))
+            x (+ last-x x-step)
+            y (+ last-y y-step)]
+        (if (or (nil? cell)
+                (>= (count segments) steps))
+          segments
+          (recur
+           x
+           y
+           (conj segments [x y])))))))
+
 (defn initial-state []
-  (let [width (width)
-        height (height)
-        tile-width 20
-        tile-height 20
-        origin [0 0]
-        grid (make-grid origin width height tile-width tile-height)]
+  (let [w (* (width) 1.5)
+        h (* (height) 1.5)
+        tile-width 10
+        tile-height 10
+        origin [(- (/ (- w (width)) 2))
+                (- (/ (- h (height)) 2))]
+        x-start (random 10)
+        y-start (random 10)
+        grid (make-grid origin w h tile-width tile-height x-start y-start)]
     {:grid grid
-     :x-start (random 10)
-     :y-start (random 10)}))
+     :curves (take 1000 (repeatedly #(make-curve [(rand-int w) (rand-int h)] 10 30)))
+     :x-start x-start
+     :y-start y-start}))
 
 (defn enumerate-cells [{:keys [g tile-height tile-width]}]
   (for [[x y] (grid/posis g)]
@@ -39,14 +79,10 @@
   (color-mode :hsb)
   (initial-state))
 
+
 (defn update-grid [{:keys [g] :as grid} x-start y-start]
-  (let [transform-fn (fn [[x y] val]
-                       (let [x-noise (mul-add x 0.030 x-start)
-                             y-noise (mul-add y 0.030 y-start)
-                             z-noise (* (frame-count) 0.030)]
-                         (assoc val :noise (noise x-noise y-noise z-noise))))]
-    (-> grid
-        (update :g #(grid/transform % transform-fn)))))
+  (-> grid
+      (update :g #(grid/transform % (transform-fn x-start y-start)))))
 
 (defn update-state [{:keys [x-start y-start] :as state}]
   (-> state
@@ -69,19 +105,41 @@
     (line start 0 end 0)
     (pop-matrix)))
 
-(defn draw-flows [{:keys [x-start y-start grid]}]
+(defn draw-curve [curve grid]
+  (let [{:keys [origin]} curve
+        [x y] origin
+        {:keys [tile-height tile-width]} grid
+        scaled-x (int (/ x tile-width))
+        scaled-y (int (/ y tile-height))
+        el (get (:g grid) [scaled-x scaled-y])
+        noise (:noise el)
+        h (map-range noise 0.0 1.0 0 360)]
+    #_(push-style)
+    #_(stroke 0)
+    #_(stroke h 300 360)
+    (begin-shape)
+    (doseq [[x y] (enumerate-segments curve grid)]
+      (vertex x y))
+    (end-shape)
+    #_(pop-style)))
+
+(defn draw-flows [{:keys [x-start y-start grid curves]}]
   (let [{:keys [tile-width tile-height]} grid]
-    (doseq [[[x y] {:keys [noise]}] (enumerate-cells grid)]
+    (doseq [curve curves]
+      (draw-curve curve grid))
+    #_(doseq [[[x y] {:keys [noise]}] (enumerate-cells grid)]
       (draw-line x y
                  tile-width
                  tile-height
                  noise))))
 
 (defn draw-state [{:keys [x-start y-start grid] :as state}]
-  #_(background 255)
-  (background 31 31 20)
+  (background 255)
+  #_(background 31 31 20)
   
+  (no-fill)
   (draw-flows state)
+  #_(save-frame "generated/curve-####.png")
   #_(do
     (let [out "generated/out.hpgl"]
       (pl/do-record
