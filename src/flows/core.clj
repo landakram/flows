@@ -32,22 +32,41 @@
    :step-length step-length
    :steps steps})
 
-(defn enumerate-segments [{:keys [origin step-length steps]} {:keys [g tile-width tile-height]}]
+(defn distort-angle [[x y] angle]
+  (let [rect {:x1 200 :y1 200 :x2 200 :y2 650}
+        {:keys [x1 y1 x2 y2]} rect]
+    (cond
+      (and (= 200)
+           (= 200))
+      (and (> x x1)
+           (< x x2)
+           (> y y1)
+           (< y y2))
+      (* TWO-PI -0.12)
+      :else
+      angle)))
+
+(defn get-angle [[x y] {:keys [g tile-width tile-height] :as grid}]
+  (let [col (int (/ x tile-width))
+        row (int (/ y tile-height))
+        cell (get g [col row])]
+    (when-not (nil? cell)
+      (->> (* (:noise cell) TWO-PI)
+           (distort-angle [x y])))))
+
+(defn enumerate-segments [{:keys [origin step-length steps]}
+                          {:keys [g tile-width tile-height] :as grid}]
   (let [[x y] origin]
     (loop [last-x x
            last-y y
            segments []]
-      (let [col (int (/ last-x tile-width))
-            row (int (/ last-y tile-height))
-            cell (get g [col row])
-            angle (if (nil? cell)
-                    -1
-                    (* (:noise cell) TWO-PI))
+      (let [angle (or (get-angle [last-x last-y] grid)
+                      -1)
             x-step (* step-length (cos angle))
             y-step (* step-length (sin angle))
             x (+ last-x x-step)
             y (+ last-y y-step)]
-        (if (or (nil? cell)
+        (if (or (= angle -1)
                 (>= (count segments) steps))
           segments
           (recur
@@ -138,9 +157,11 @@
   #_(background 31 31 20)
   
   (no-fill)
+
   (draw-flows state)
+  (no-loop)
   #_(save-frame "generated/curve-####.png")
-  #_(do
+  (do
     (let [out "generated/out.hpgl"]
       (pl/do-record
        (width)
@@ -157,7 +178,7 @@
   :settings
   (fn []
     (smooth 8))
-  :size [800 800]
+  :size [800 1000]
   :setup setup
   :update update-state
   :draw draw-state
