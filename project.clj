@@ -7,4 +7,4 @@
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [quil "3.1.0"]
                  [grid2d "0.1.0-SNAPSHOT"]
-                 [plotter-utils "0.1.1"]])
+                 [plotter-utils "0.1.2"]])
