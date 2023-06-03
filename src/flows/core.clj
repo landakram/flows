@@ -134,20 +134,23 @@
                       :r (random min-r max-r)})))
 
 (defn initial-state []
-  (let [w (* (width) 1.5)
-        h (* (height) 1.5)
+  (let [w (* (width) 1.2)
+        h (* (height) 1.2)
         tile-width 10
         tile-height 10
         origin [(- (/ (- w (width)) 2))
                 (- (/ (- h (height)) 2))]
         x-start (random 10)
         y-start (random 10)
+        d-min-r 25
+        d-max-r 150
+        d-padding (* 2 d-min-r)
         distortions (take (rand-nth (range 1 10))
-                          (random-distortions 0 (width) 0 (height) 50 150))
+                          (random-distortions d-padding (- (width) d-padding) d-padding (- (height) d-padding) 25 150))
         grid (make-grid origin w h tile-width tile-height x-start y-start)]
     {:grid grid
      :distortions distortions
-     :curves (take 2500 (repeatedly #(random-curve w h 10 30 distortions)))
+     :curves (take 3000 (repeatedly #(random-curve w h 10 30 distortions)))
      :x-start x-start
      :y-start y-start}))
 
@@ -199,13 +202,23 @@
   
   (no-fill)
 
+  ;; Uncomment to debug distortions
   #_(doseq [{:keys [x y r]} distortions]
     (ellipse x y (* r 2) (* r 2)))
   
+  ;; Uncomment for svg output
+  (do-record (create-graphics (width) (height) :svg "generated/curves-5.svg")
+             (draw-flows state))
+
   (draw-flows state)
-  (save "generated/curve-distortions-3.png")
+  (println "Done.")
+
   (no-loop)
+
+  ;; Uncomment for png output
   #_(save-frame "generated/curve-####.png")
+
+  ;; Uncomment for plotter output
   #_(do
     (let [out "generated/out.hpgl"]
       (pl/do-record
@@ -222,8 +235,8 @@
   :title "Flows"
   :settings
   (fn []
-    (smooth 8))
-  :size [800 1000]
+    (smooth 4))
+  :size [1000 1000]
   :setup setup
   :update update-state
   :draw draw-state
