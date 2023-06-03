@@ -169,25 +169,6 @@
   (-> state
       (update :grid #(update-grid % x-start y-start))))
 
-(defn draw-line [x y width height angle]
-  (push-matrix)
-  (translate x y)
-  (rotate angle)
-  (let [h 100
-        s 300
-        b 360 #_(map-range noise-factor 0.0 1.0 0 300)
-        ;;alpha (map-range noise-factor 0 1 100 255)
-        length (+ width 0)
-        start (- (/ length 2))
-        end (/ length 2)]
-    (stroke-weight 1)
-    (stroke 0 0 0)
-    #_(stroke h s b alpha)
-    (line start 0 end 0)
-    (fill 0)
-    (ellipse end 0 4 4)
-    (pop-matrix)))
-
 (defn draw-curve [curve distortions grid]
   (let [{:keys [origin]} curve
         [x y] origin
@@ -198,25 +179,19 @@
         noise (:noise el)
         h (map-range noise 0.0 1.0 0 360)]
     #_(push-style)
-    #_(stroke 0)
-    #_(stroke h 300 360)
-    (begin-shape)
-    (doseq [[x y] (enumerate-segments curve distortions grid)]
-      (vertex x y))
-    (end-shape)
+    #_(stroke 255)
+    #_(stroke 0 0 0)
+    (let [point-pairs (partition 2 1 (enumerate-segments curve distortions grid))]
+      (doseq [[p1 p2] point-pairs]
+        (line (p1 0) (p1 1) (p2 0) (p2 1))))
     #_(pop-style)))
+
+
 
 (defn draw-flows [{:keys [x-start y-start distortions grid curves]}]
   (let [{:keys [tile-width tile-height]} grid]
     (doseq [curve curves]
-      (draw-curve curve distortions grid))
-
-    #_(doseq [[[x y] {:keys [noise]}] (enumerate-cells grid)]
-      (let [angle (get-angle [x y] distortions grid)]
-        (draw-line x y
-                   tile-width
-                   tile-height
-                   angle)))))
+      (draw-curve curve distortions grid))))
 
 (defn draw-state [{:keys [x-start y-start distortions grid] :as state}]
   (background 255)
